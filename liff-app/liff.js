@@ -4,6 +4,8 @@ const USER_SERVICE_UUID         = 'f8ace7e3-b401-4043-944e-f89d352e092e'; // LED
 const LED_CHARACTERISTIC_UUID   = 'E9062E71-9E62-4BC6-B0D3-35CDCD9B027B';
 const BTN_CHARACTERISTIC_UUID   = '62FBD229-6EDD-4D1A-B554-5C4E1BB29169';
 
+const DIRECTION_DATA_CHARACTERISTIC_UUID="c1c107e2-60a7-11e8-9c2d-fa7ae01bbebc";
+
 // PSDI Service UUID: Fixed value for Developer Trial
 const PSDI_SERVICE_UUID         = 'E625601E-9E55-4597-A598-76018A0D293D'; // Device ID
 const PSDI_CHARACTERISTIC_UUID  = '26E2B12B-85F0-4F3F-9FDD-91D114270E6E';
@@ -215,6 +217,13 @@ function liffGetUserService(service) {
         uiStatusError(makeErrorMsg(error), false);
     });
 
+    // Direction
+    service.getCharacteristic(DIRECTION_DATA_CHARACTERISTIC_UUID).then(characteristic => {
+        liffGetDirectionCharacteristic(characteristic);
+    }).catch(error => {
+        uiStatusError(makeErrorMsg(error), false);
+    });
+
     // Toggle LED
     service.getCharacteristic(LED_CHARACTERISTIC_UUID).then(characteristic => {
         window.ledCharacteristic = characteristic;
@@ -266,6 +275,26 @@ function liffToggleDeviceLedState(state) {
     window.ledCharacteristic.writeValue(
         state ? new Uint8Array([0x01]) : new Uint8Array([0x00])
     ).catch(error => {
+        uiStatusError(makeErrorMsg(error), false);
+    });
+}
+
+
+
+function uiUpdateDirection(dir) {
+    const el = document.getElementById("direction");
+    el.innerText = dir;
+}
+
+function liffGetDirectionCharacteristic(characteristic) {
+    // Add notification hook for button state
+    // (Get notified when button state changes)
+    characteristic.startNotifications().then(() => {
+        characteristic.addEventListener('characteristicvaluechanged', e => {
+            const vals = (new Uint8Array(e.target.value.buffer));
+            uiUpdateDirection(vals[0]*0xff+vals[1]);
+        });
+    }).catch(error => {
         uiStatusError(makeErrorMsg(error), false);
     });
 }
